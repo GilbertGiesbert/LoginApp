@@ -1,18 +1,21 @@
 package com.example.geheim.loginapp;
 
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 
-public class MainActivity extends ActionBarActivity implements View.OnClickListener{
+public class MainActivity extends ActionBarActivity implements View.OnClickListener, LoginResponseListener{
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
+
+    private TextView tv_info;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,6 +24,8 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
         Button bt_login = (Button) findViewById(R.id.bt_login);
         bt_login.setOnClickListener(this);
+
+        tv_info = (TextView) findViewById(R.id.tv_info);
     }
 
 
@@ -52,12 +57,19 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
         if(v.getId() == R.id.bt_login){
 
+            tv_info.setText("");
+
             String user = ((EditText)findViewById(R.id.et_user)).getText().toString();
             String password = ((EditText)findViewById(R.id.et_password)).getText().toString();
 
-            LoginTask loginTask = new LoginTask(this);
+            LoginTask loginTask = new LoginTask(this, this);
             loginTask.execute(user, password);
 
         }
+    }
+
+    @Override
+    public void onLoginResponse(String loginResponseMessage) {
+        tv_info.setText(loginResponseMessage);
     }
 }

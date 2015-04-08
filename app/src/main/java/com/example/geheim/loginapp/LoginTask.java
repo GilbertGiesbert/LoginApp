@@ -4,20 +4,27 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.Toast;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
+import java.io.InputStream;
+import java.util.ArrayList;
 
 // params, progress, result
-public class LoginTask extends AsyncTask<String, String, Boolean> {
+public class LoginTask extends AsyncTask<String, String, String> {
 
     private static final String LOG_TAG = LoginTask.class.getSimpleName();
 
     private Context context;
     private ProgressDialog dialog;
+    private LoginResponseListener loginResponseListener;
 
 
-    public LoginTask(Context context){
+    public LoginTask(Context context, LoginResponseListener loginResponseListener){
         super();
         this.context=context;
+        this.loginResponseListener = loginResponseListener;
     }
 
     @Override
@@ -29,35 +36,48 @@ public class LoginTask extends AsyncTask<String, String, Boolean> {
     }
 
     @Override
-    protected Boolean doInBackground(String... params) {
+    protected String doInBackground(String... params) {
         Log.d(LOG_TAG, "doInBackground()");
 
+        String response;
+
         if(params == null || params.length < 2){
-            Log.d(LOG_TAG, "missing user name or password in params");
-            return false;
+            String msg = "missing user name or password in params";
+            Log.d(LOG_TAG, msg);
+            response = msg;
+
+        }else{
+
+            ArrayList<NameValuePair> postParameters = new ArrayList<>();
+            postParameters.add(new BasicNameValuePair("username", params[0]));
+            postParameters.add(new BasicNameValuePair("password",params[1]));
+
+            InputStream keyStoreData = context.getResources().openRawResource(R.raw.keystore);
+            if(keyStoreData == null){
+                String msg = "missing keystore data file";
+                Log.d(LOG_TAG, msg);
+                response = msg;
+
+            }else{
+                try{
+
+                    response = SimpleHttpClient.executeHttpPost("https://192.168.0.90:8443/login/login.do", postParameters, keyStoreData);
+//                    response = response.replaceAll("\\s+", "");
+
+                }catch(Exception e){
+                    Log.d(LOG_TAG, "login interrupted");
+                    response = e.getMessage();
+                }
+            }
         }
 
-        String user = params[0];
-        Log.d(LOG_TAG, "user="+user);
-        String password = params[1];
-        Log.d(LOG_TAG, "password="+password);
-
-        try{
-
-            int timeout = 8000;
-            Thread.sleep(timeout);
-        }catch(InterruptedException e){
-            Log.d(LOG_TAG, "login interrupted");
-            return false;
-        }
-
-        return "password".equals(password);
+        return response;
     }
 
     @Override
-    protected void onPostExecute(Boolean result) {
+    protected void onPostExecute(String result) {
 
-        Toast.makeText(context, "Login "+(result?"successful":"failed"), Toast.LENGTH_SHORT).show();
+        loginResponseListener.onLoginResponse(result);
 
         dialog.dismiss();
 
